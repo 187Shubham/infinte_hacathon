@@ -1171,3 +1171,116 @@ html, body, #root {
   .dashboard-main { padding: 24px 16px; }
   .documents-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ===== Quill Editor - Dark Theme Override ===== */
+.editor-quill-wrapper {
+  width: 100%;
+  max-width: 720px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+}
+
+/* Toolbar */
+.editor-quill-wrapper .ql-toolbar.ql-snow {
+  background: var(--bg3);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+}
+
+/* Toolbar buttons */
+.editor-quill-wrapper .ql-toolbar .ql-stroke {
+  stroke: var(--text2);
+}
+.editor-quill-wrapper .ql-toolbar .ql-fill {
+  fill: var(--text2);
+}
+.editor-quill-wrapper .ql-toolbar .ql-picker-label {
+  color: var(--text2);
+}
+.editor-quill-wrapper .ql-toolbar button:hover .ql-stroke,
+.editor-quill-wrapper .ql-toolbar button.ql-active .ql-stroke {
+  stroke: var(--accent2);
+}
+.editor-quill-wrapper .ql-toolbar button:hover .ql-fill,
+.editor-quill-wrapper .ql-toolbar button.ql-active .ql-fill {
+  fill: var(--accent2);
+}
+.editor-quill-wrapper .ql-toolbar .ql-picker-label:hover,
+.editor-quill-wrapper .ql-toolbar .ql-picker-item:hover {
+  color: var(--accent2);
+}
+
+/* Dropdown picker */
+.editor-quill-wrapper .ql-toolbar .ql-picker-options {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+}
+
+/* Editor body */
+.editor-quill-wrapper .ql-container.ql-snow {
+  border: none;
+  font-family: var(--font-body);
+  font-size: 16px;
+}
+
+.editor-quill-wrapper .ql-editor {
+  min-height: calc(100vh - 220px);
+  padding: 48px 56px;
+  color: var(--text);
+  line-height: 1.8;
+  background: var(--bg2);
+}
+
+.editor-quill-wrapper .ql-editor.ql-blank::before {
+  color: var(--text3);
+  font-style: normal;
+  left: 56px;
+}
+
+/* Headings inside editor */
+.editor-quill-wrapper .ql-editor h1,
+.editor-quill-wrapper .ql-editor h2,
+.editor-quill-wrapper .ql-editor h3 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+/* Blockquote */
+.editor-quill-wrapper .ql-editor blockquote {
+  border-left: 3px solid var(--accent);
+  color: var(--text2);
+  padding-left: 16px;
+  margin-left: 0;
+}
+
+/* Code block */
+.editor-quill-wrapper .ql-editor pre.ql-syntax {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--accent2);
+  font-size: 13px;
+}
+
+/* Scrollbar */
+.editor-quill-wrapper .ql-editor::-webkit-scrollbar { width: 6px; }
+.editor-quill-wrapper .ql-editor::-webkit-scrollbar-track { background: transparent; }
+.editor-quill-wrapper .ql-editor::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .editor-quill-wrapper .ql-editor {
+    padding: 28px 20px;
+  }
+  .editor-quill-wrapper .ql-editor.ql-blank::before {
+    left: 20px;
+  }
+}

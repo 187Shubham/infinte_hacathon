@@ -5,8 +5,21 @@ import { useSocket } from '../hooks/useSocket';
 import { documentAPI } from '../utils/api';
 import VersionHistory from '../components/VersionHistory';
 import CollaboratorPanel from '../components/CollaboratorPanel';
+import ReactQuill from 'react-quill';               // ← NEW
+import 'react-quill/dist/quill.snow.css';           // ← NEW
 
 const SAVE_INTERVAL = 5000;
+
+// ← NEW: Quill toolbar config
+const TOOLBAR_OPTIONS = [
+  [{ header: [1, 2, 3, false] }],
+  ['bold', 'italic', 'underline', 'strike'],
+  [{ color: [] }, { background: [] }],
+  [{ list: 'ordered' }, { list: 'bullet' }],
+  ['blockquote', 'code-block'],
+  ['link'],
+  ['clean'],
+];
 
 export default function DocumentEditor() {
   const { id } = useParams();
@@ -29,11 +42,9 @@ export default function DocumentEditor() {
   const [saveStatus, setSaveStatus] = useState('saved');
   const [notification, setNotification] = useState('');
 
-  const editorRef = useRef(null);
   const saveTimerRef = useRef(null);
   const contentRef = useRef('');
   const titleRef = useRef('Untitled Document');
-  const isRemoteChange = useRef(false);
 
   // Load document from API
   useEffect(() => {
@@ -59,7 +70,6 @@ export default function DocumentEditor() {
   useEffect(() => {
     if (!connected || !id) return;
 
-    // Join document room
     emit('join-document', { documentId: id });
 
     const handleLoad = ({ content: docContent, title: docTitle, version: docVersion }) => {
@@ -72,20 +82,9 @@ export default function DocumentEditor() {
 
     const handleReceiveChanges = ({ content: newContent, userId }) => {
       if (userId === user?.id) return;
-      isRemoteChange.current = true;
       setContent(newContent);
       contentRef.current = newContent;
       setSaveStatus('unsaved');
-
-      // Preserve cursor position
-      const editor = editorRef.current;
-      if (editor) {
-        const selStart = editor.selectionStart;
-        const selEnd = editor.selectionEnd;
-        editor.value = newContent;
-        editor.setSelectionRange(selStart, selEnd);
-      }
-      isRemoteChange.current = false;
     };
 
     const handleUsersUpdate = (users) => {
@@ -147,16 +146,14 @@ export default function DocumentEditor() {
     setTimeout(() => setNotification(''), 3000);
   };
 
-  const handleContentChange = useCallback((e) => {
-    const newContent = e.target.value;
-    setContent(newContent);
-    contentRef.current = newContent;
+  // ← CHANGED: handles Quill's onChange (gives value string directly, not an event)
+  const handleContentChange = useCallback((value) => {
+    setContent(value);
+    contentRef.current = value;
     setSaveStatus('unsaved');
-
-    // Broadcast to others
     emit('send-changes', {
       documentId: id,
-      content: newContent,
+      content: value,
     });
   }, [id, emit]);
 
@@ -178,27 +175,18 @@ export default function DocumentEditor() {
     });
   }, [id, emit, saveStatus]);
 
+  // Ctrl+S to save (attach to wrapper div since Quill owns the textarea)
   const handleKeyDown = (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
       handleSave();
     }
-    // Tab support
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
-      const newValue = content.substring(0, start) + '  ' + content.substring(end);
-      setContent(newValue);
-      contentRef.current = newValue;
-      setTimeout(() => {
-        e.target.selectionStart = e.target.selectionEnd = start + 2;
-      }, 0);
-    }
   };
 
-  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
-  const charCount = content.length;
+  // Word/char count — strip HTML tags from Quill's HTML output
+  const plainText = content.replace(/<[^>]*>/g, '');
+  const wordCount = plainText.trim() ? plainText.trim().split(/\s+/).length : 0;
+  const charCount = plainText.length;
 
   if (loading) return (
     <div className="editor-loading">
@@ -214,8 +202,8 @@ export default function DocumentEditor() {
   );
 
   return (
-    <div className="editor-page">
-      {/* Top Bar */}
+    <div className="editor-page" onKeyDown={handleKeyDown}>
+      {/* Top Bar — unchanged */}
       <header className="editor-header">
         <div className="editor-header-left">
           <button className="back-btn" onClick={() => navigate('/')}>
@@ -237,7 +225,6 @@ export default function DocumentEditor() {
         </div>
 
         <div className="editor-header-center">
-          {/* Active users avatars */}
           <div className="active-users">
             {activeUsers.map((u, i) => (
               <div
@@ -279,7 +266,6 @@ export default function DocumentEditor() {
           <button
             className="toolbar-btn"
             onClick={() => { setShowCollaborators(true); setShowVersions(false); }}
-            title="Collaborators"
           >
             👥 Share
           </button>
@@ -287,7 +273,6 @@ export default function DocumentEditor() {
           <button
             className="toolbar-btn"
             onClick={() => { setShowVersions(true); setShowCollaborators(false); }}
-            title="Version history"
           >
             🕐 History
           </button>
@@ -309,22 +294,20 @@ export default function DocumentEditor() {
       {/* Main editor area */}
       <div className="editor-container">
         <div className="editor-paper">
-          <textarea
-            ref={editorRef}
-            className="editor-textarea"
-            value={content}
-            onChange={handleContentChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Start writing your document here...
 
-You can use plain text or Markdown-style formatting.
-Press Ctrl+S (or Cmd+S) to save.
-Changes sync in real-time with all collaborators."
-            spellCheck
-          />
+          {/* ← CHANGED: ReactQuill replaces <textarea> */}
+          <div className="editor-quill-wrapper">
+            <ReactQuill
+              theme="snow"
+              value={content}
+              onChange={handleContentChange}
+              modules={{ toolbar: TOOLBAR_OPTIONS }}
+              placeholder="Start writing... changes sync in real-time with all collaborators."
+            />
+          </div>
+
         </div>
 
-        {/* Version history panel */}
         {showVersions && (
           <div className="side-panel">
             <VersionHistory
@@ -336,7 +319,6 @@ Changes sync in real-time with all collaborators."
           </div>
         )}
 
-        {/* Collaborators panel */}
         {showCollaborators && (
           <div className="side-panel">
             <CollaboratorPanel
@@ -350,7 +332,7 @@ Changes sync in real-time with all collaborators."
         )}
       </div>
 
-      {/* Status bar */}
+      {/* Status bar — unchanged */}
       <footer className="editor-statusbar">
         <span>v{version}</span>
         <span>·</span>
